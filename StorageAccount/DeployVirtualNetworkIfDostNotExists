@@ -1,0 +1,136 @@
+{
+  "properties": {
+    "displayName": "Restrict network access to storage account",
+    "policyType": "Custom",
+    "mode": "All",
+    "parameters": {
+        "vnetSubnetId": {
+            "type": "String",
+            "metadata": {
+              "displayName": "Vnet subnet id",
+              "description": "The subnetId that vnet connections should link to",
+              "strongType": "Microsoft.Network/virtualNetworks/subnets"
+            }
+          },
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        },
+        "allowedValues": [
+          "DeployIfNotExists",
+          "Disabled"
+        ],
+        "defaultValue": "DeployIfNotExists"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Storage/storageAccounts"
+          },
+          {
+            "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
+            "notEquals": "Deny"
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]",
+        "details": {
+          "type": "Microsoft.Storage/storageAccounts",
+          "name": "[field('name')]",
+          "existenceCondition": {
+            "field": "Microsoft.Storage/storageAccounts/networkAcls.defaultAction",
+            "equals": "Deny"
+          },
+          "roleDefinitionIds": [
+            "/providers/Microsoft.Authorization/roleDefinitions/b24988ac-6180-42a0-ab88-20f7382dd24c",
+            "/providers/Microsoft.Authorization/roleDefinitions/17d1049b-9a84-46fb-8f53-869881c3d3ab"
+          ],
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "parameters": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "sku": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "vnetSubnetId": {
+                    "type": "string"
+                  }
+                },
+                "resources": [
+                  {
+                    "name": "[parameters('name')]",
+                    "type": "Microsoft.Storage/storageAccounts",
+                    "apiVersion": "2019-06-01",
+                    "location": "[parameters('location')]",
+                    "properties": {
+                      "networkAcls": {
+                        "bypass": "AzureServices",
+                        "virtualNetworkRules": [
+                          {
+                            "id": "[parameters('vnetSubnetId')]",
+                            "action": "Allow"
+                          }
+                        ],
+                        "ipRules": [
+                            {
+                                "value": "20.212.38.238",
+                                "action": "Allow"
+                            },
+                            {
+                                "value": "167.220.255.26",
+                                "action": "Allow"
+                            }
+                        ],
+                        "defaultAction": "Deny"
+                      }
+                    },
+                    "dependsOn": [],
+                    "sku": {
+                      "name": "[parameters('sku')]"
+                    },
+                    "kind": "[parameters('kind')]"
+                  }
+                ]
+              },
+              "parameters": {
+                "name": {
+                  "value": "[field('name')]"
+                },
+                "sku": {
+                  "value": "[field('Microsoft.Storage/storageAccounts/sku.name')]"
+                },
+                "location": {
+                  "value": "[field('location')]"
+                },
+                "kind": {
+                  "value": "[field('kind')]"
+                },
+                "vnetSubnetId": {
+                    "value": "[parameters('vnetSubnetId')]"
+                  }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
