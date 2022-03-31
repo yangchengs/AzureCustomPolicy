@@ -1,0 +1,102 @@
+{
+  "properties": {
+    "displayName": "Deploy VM Application if it does not exist",
+    "policyType": "Custom",
+    "mode": "All",
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Enable or disable the execution of the policy"
+        },
+        "allowedValues": [
+          "DeployIfNotExists",
+          "Disabled"
+        ],
+        "defaultValue": "DeployIfNotExists"
+      },
+      "packageReferenceId1": {
+        "type": "String",
+        "defaultValue": "/subscriptions/{subid}/resourceGroups/{resourceGroup}/providers/Microsoft.Compute/galleries/{galleryName}/applications/{appName}/versions/{versionId}"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Compute/virtualMachines"
+          },
+          {
+            "field": "Microsoft.Compute/virtualMachines/storageProfile.osDisk.osType",
+            "equals": "Linux"
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]",
+        "details": {
+          "type": "Microsoft.Compute/virtualMachines",
+          "name": "[field('name')]",
+          "existenceCondition": {
+            "field": "Microsoft.Compute/virtualMachines/applicationProfile",
+            "exists": true
+          },
+          "roleDefinitionIds": [
+            "/providers/Microsoft.Authorization/roleDefinitions/9980e02c-c2be-4d73-94e8-173b1dc7cf3c"            
+          ],
+          "deployment": {
+            "properties": {
+              "mode": "incremental",
+              "template": {
+                "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                "contentVersion": "1.0.0.0",
+                "parameters": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "location": {
+                    "type": "string"
+                  },
+                  "packageReferenceId1": {
+                    "type": "string"
+                  }
+                },
+                "resources": [
+                  {
+                    "name": "[parameters('name')]",
+                    "location" : "[parameters('location')]",
+                    "type": "Microsoft.Compute/virtualMachines",
+                    "apiVersion": "2021-11-01",
+                    "properties": {
+                      "applicationProfile": {
+                        "galleryApplications": [
+                          {
+                            "packageReferenceId": "[parameters('packageReferenceId1')]"                            
+                          }
+                        ]
+                      }
+                    },
+                    "dependsOn": []
+                  }
+                ]
+              },
+              "parameters": {
+                "name": {
+                  "value": "[field('name')]"
+                },
+                "location": {
+                    "value": "[field('location')]"
+                },
+                "packageReferenceId1": {
+                  "value": "[parameters('packageReferenceId1')]"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
